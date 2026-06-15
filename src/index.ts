@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { dispatchToWebhook, startReminderScheduler } from "./dispatcher.js";
+import { captureProductivityItem, parseTargetShortcut } from "./productivity.js";
 import { ReminderStore } from "./store.js";
 import { createServer } from "./server.js";
 
@@ -20,6 +21,17 @@ if (command === "mcp") {
 } else if (command === "fire-due") {
   const fired = await store.fireDue();
   process.stdout.write(`${JSON.stringify(fired, null, 2)}\n`);
+} else if (command === "capture") {
+  const utterance = readPositionals(3).join(" ");
+  const result = await captureProductivityItem(store, {
+    utterance,
+    text: readFlag("--text"),
+    fireAt: readFlag("--fire-at"),
+    expiresAt: readFlag("--expires-at"),
+    target: parseTargetShortcut(readFlag("--target")),
+    defaultTarget: parseTargetShortcut(readFlag("--default-target"))
+  });
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 } else if (command === "daemon") {
   const webhook = readFlag("--webhook");
   const intervalMs = Number(readFlag("--interval-ms") ?? "60000");
@@ -43,6 +55,7 @@ if (command === "mcp") {
 
 Usage:
   agent-reminders mcp
+  agent-reminders capture "add review PR to todo"
   agent-reminders fire-due
   agent-reminders daemon --webhook <url> [--interval-ms 60000]
 
@@ -57,4 +70,17 @@ function readFlag(name: string): string | undefined {
     return undefined;
   }
   return process.argv[index + 1];
+}
+
+function readPositionals(startIndex: number): string[] {
+  const values: string[] = [];
+  for (let index = startIndex; index < process.argv.length; index += 1) {
+    const value = process.argv[index];
+    if (value.startsWith("--")) {
+      index += 1;
+      continue;
+    }
+    values.push(value);
+  }
+  return values;
 }

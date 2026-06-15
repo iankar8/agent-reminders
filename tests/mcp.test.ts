@@ -32,6 +32,15 @@ describe("MCP stdio server", () => {
     try {
       await client.connect(transport);
 
+      const prompts = await client.listPrompts();
+      expect(prompts.prompts.map((prompt) => prompt.name)).toContain("productivity_mode");
+
+      const productivityPrompt = await client.getPrompt({ name: "productivity_mode" });
+      expect(productivityPrompt.messages[0]?.content).toMatchObject({
+        type: "text",
+        text: expect.stringContaining("productivity_capture")
+      });
+
       const todoResult = await client.callTool({
         name: "todo_add",
         arguments: {
@@ -62,6 +71,20 @@ describe("MCP stdio server", () => {
       expect(fired).toHaveLength(1);
       expect(fired[0].target.id).toBe("clean-thread");
       expect(fired[0].prompt).toContain("Wake clean thread");
+
+      const captureResult = await client.callTool({
+        name: "productivity_capture",
+        arguments: {
+          utterance: "add this to todo",
+          text: "Review proactive capture",
+          defaultTarget: { kind: "thread", id: "clean-thread" }
+        }
+      });
+      const captured = parseTextResult(captureResult);
+
+      expect(captured.intent).toBe("todo");
+      expect(captured.item.text).toBe("Review proactive capture");
+      expect(captured.item.target.id).toBe("clean-thread");
     } finally {
       await client.close();
     }

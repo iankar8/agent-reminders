@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -33,6 +33,14 @@ describe("ReminderStore", () => {
     expect(item.status).toBe("open");
     expect(items).toHaveLength(1);
     expect(items[0]?.text).toBe("Check the deploy");
+  });
+
+  it("treats an existing empty store file as an empty queue", async () => {
+    const filePath = join(dir, "empty.json");
+    await writeFile(filePath, "", "utf8");
+    const emptyStore = new ReminderStore(filePath, () => now);
+
+    expect(await emptyStore.list()).toEqual([]);
   });
 
   it("fires due reminders and marks one-shot reminders fired", async () => {

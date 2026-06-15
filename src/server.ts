@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { captureProductivityItem, productivityPrompt } from "./productivity.js";
 import { ReminderStore } from "./store.js";
 
 const targetSchema = z.object({
@@ -12,6 +13,38 @@ export function createServer(store: ReminderStore): McpServer {
     name: "agent-reminders",
     version: "0.1.0"
   });
+
+  server.prompt(
+    "productivity_mode",
+    "Use this prompt to proactively capture user todo/reminder requests.",
+    () => ({
+      description: "Proactive todo/reminder capture behavior for agent-reminders.",
+      messages: [
+        {
+          role: "user" as const,
+          content: {
+            type: "text" as const,
+            text: productivityPrompt()
+          }
+        }
+      ]
+    })
+  );
+
+  server.tool(
+    "productivity_capture",
+    "Capture common user phrasing like 'add this to todo' or 'remind me later' as a to-do or reminder.",
+    {
+      utterance: z.string().min(1),
+      text: z.string().optional(),
+      fireAt: z.string().optional(),
+      expiresAt: z.string().optional(),
+      triggerPrompt: z.string().optional(),
+      defaultTarget: targetSchema.optional(),
+      target: targetSchema.optional()
+    },
+    async (input) => jsonResult(await captureProductivityItem(store, input))
+  );
 
   server.tool(
     "todo_add",

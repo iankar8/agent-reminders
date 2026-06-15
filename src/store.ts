@@ -126,6 +126,9 @@ export class ReminderStore {
   private async read(): Promise<ReminderSnapshot> {
     try {
       const raw = await readFile(this.filePath, "utf8");
+      if (!raw.trim()) {
+        return { version: 1, items: [] };
+      }
       const parsed = JSON.parse(raw) as ReminderSnapshot;
       if (parsed.version !== 1 || !Array.isArray(parsed.items)) {
         throw new Error("Invalid reminder snapshot");

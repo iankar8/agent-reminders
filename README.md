@@ -56,6 +56,41 @@ agent-reminders daemon --webhook http://127.0.0.1:4242/agent-reminders --interva
 
 The webhook receives the same JSON shape as `reminders_fire_due`.
 
+## Proactive Productivity Capture
+
+Hosts should load the MCP prompt `productivity_mode`. It tells the agent to call `productivity_capture` whenever the user says things like:
+
+- "add this to todo"
+- "put review the PR on my task list"
+- "remind me later to check the build"
+- "add this to reminders"
+
+The capture tool accepts the raw user phrase and optional overrides:
+
+```json
+{
+  "utterance": "remind me in 10m to check the deploy",
+  "defaultTarget": { "kind": "thread", "id": "current" }
+}
+```
+
+It returns the created item and parsed intent. If the host already knows what "this" means, pass it explicitly:
+
+```json
+{
+  "utterance": "add this to todo",
+  "text": "Review the deploy logs",
+  "defaultTarget": { "kind": "thread", "id": "current" }
+}
+```
+
+You can also smoke-test capture from the CLI:
+
+```sh
+agent-reminders capture "remind me in 10m to check the deploy"
+agent-reminders capture "add review the PR to todo" --target agent:builder
+```
+
 You can also embed the store and scheduler directly:
 
 ```ts
@@ -110,6 +145,7 @@ Returns all due trigger prompts. One-shot reminders become `fired`; to-dos remai
 
 ### Other tools
 
+- `productivity_capture`
 - `items_list`
 - `todo_done`
 - `item_snooze`
