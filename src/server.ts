@@ -136,6 +136,22 @@ export function createServer(store: ReminderStore): McpServer {
   );
 
   server.tool(
+    "item_update",
+    "Edit a to-do or reminder. Changing fireAt clears the fired marker so edited reminders can fire again.",
+    {
+      id: z.string().min(1),
+      text: z.string().min(1).optional(),
+      kind: z.enum(["todo", "reminder"]).optional(),
+      fireAt: z.string().optional(),
+      expiresAt: z.string().optional(),
+      target: targetSchema.optional(),
+      triggerPrompt: z.string().optional(),
+      note: z.string().optional()
+    },
+    async ({ id, ...changes }) => jsonResult(await store.update(id, changes))
+  );
+
+  server.tool(
     "reminders_fire_due",
     "Return all due reminder trigger prompts and mark one-shot reminders fired.",
     {},

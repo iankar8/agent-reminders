@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type {
   AgentReminder,
   AgentReminderInput,
+  AgentReminderUpdate,
   FiredReminder,
   ReminderListFilter,
   ReminderSnapshot
@@ -70,6 +71,43 @@ export class ReminderStore {
     item.updatedAt = now.toISOString();
     item.note = note ?? item.note;
     delete item.firedAt;
+    await this.write(snapshot);
+    return item;
+  }
+
+  async update(id: string, changes: AgentReminderUpdate): Promise<AgentReminder> {
+    const snapshot = await this.read();
+    const now = this.clock();
+    const item = findItem(snapshot, id);
+
+    if (changes.text !== undefined) {
+      item.text = changes.text;
+    }
+    if (changes.kind !== undefined) {
+      item.kind = changes.kind;
+    }
+    if (changes.target !== undefined) {
+      item.target = changes.target;
+    }
+    if (changes.triggerPrompt !== undefined) {
+      item.triggerPrompt = changes.triggerPrompt;
+    }
+    if (changes.note !== undefined) {
+      item.note = changes.note;
+    }
+    if (changes.expiresAt !== undefined) {
+      item.expiresAt = parseTime(changes.expiresAt, now);
+    }
+    if (changes.fireAt !== undefined) {
+      item.fireAt = parseTime(changes.fireAt, now);
+      // A changed fire time should be allowed to notify/fire again.
+      delete item.firedAt;
+      if (item.status === "fired") {
+        item.status = "open";
+      }
+    }
+
+    item.updatedAt = now.toISOString();
     await this.write(snapshot);
     return item;
   }
