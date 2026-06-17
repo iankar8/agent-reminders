@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Reminders</title>
+<style>
+/* ============================================================
+   AGENT REMINDERS · Native Clarity → Liquid Glass
+   Adapted from cc-menubar-mockup/index.html. The desktop scene/
+   wallpaper/menubar chrome is removed: the real NSVisualEffectView
+   is the backdrop, so html/body are transparent and the .panel
+   keeps its glass tint + backdrop-filter over the vibrancy.
+   ============================================================ */
+
+:root{
+  --w: 392px;
+
+  --blue:#007AFF; --red:#FF3B30; --orange:#FF9500;
+  --green:#34C759; --purple:#AF52DE; --teal:#33B5E5; --indigo:#5856D6;
+
+  --t1: rgba(0,0,0,.86);
+  --t2: rgba(0,0,0,.50);
+  --t3: rgba(0,0,0,.30);
+  --sep: rgba(0,0,0,.08);
+
+  --glass-fill: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.40));
+  --glass-tint: rgba(248,248,252,.40);
+  --glass-edge: rgba(255,255,255,.65);
+  --glass-edge-bottom: rgba(0,0,0,.06);
+  --glass-spec: rgba(255,255,255,.9);
+  --hover-fill: rgba(255,255,255,.55);
+  --press-fill: rgba(0,0,0,.04);
+  --row-card: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.55));
+
+  --seg-track: rgba(120,120,128,.16);
+  --seg-thumb: linear-gradient(180deg,#fff,rgba(255,255,255,.78));
+
+  --shadow-card: 0 6px 16px -8px rgba(20,18,40,.34);
+  --shadow-card-hover: 0 12px 26px -8px rgba(20,18,40,.42);
+  --shadow-pill: 0 2px 6px -1px rgba(0,0,0,.18), 0 1px 1px rgba(0,0,0,.06);
+
+  --field: rgba(255,255,255,.7);
+  --overlay-bg: rgba(245,245,249,.94);
+}
+
+[data-theme="dark"]{
+  --blue:#0A84FF; --red:#FF453A; --orange:#FF9F0A;
+  --green:#30D158; --purple:#BF5AF2; --teal:#5AC8FA; --indigo:#5E5CE6;
+
+  --t1: rgba(255,255,255,.92);
+  --t2: rgba(255,255,255,.55);
+  --t3: rgba(255,255,255,.34);
+  --sep: rgba(255,255,255,.10);
+
+  --glass-fill: linear-gradient(180deg, rgba(70,70,78,.55), rgba(40,40,46,.42));
+  --glass-tint: rgba(34,34,40,.40);
+  --glass-edge: rgba(255,255,255,.16);
+  --glass-edge-bottom: rgba(0,0,0,.5);
+  --glass-spec: rgba(255,255,255,.32);
+  --hover-fill: rgba(255,255,255,.08);
+  --press-fill: rgba(0,0,0,.18);
+  --row-card: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
+
+  --seg-track: rgba(120,120,128,.28);
+  --seg-thumb: linear-gradient(180deg, rgba(120,120,128,.7), rgba(110,110,118,.55));
+
+  --shadow-card: 0 6px 16px -8px rgba(0,0,0,.6);
+  --shadow-card-hover: 0 14px 30px -8px rgba(0,0,0,.7);
+  --shadow-pill: 0 3px 8px -1px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18);
+
+  --field: rgba(255,255,255,.09);
+  --overlay-bg: rgba(30,30,35,.92);
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ height:100%; background:transparent; }    /* NSVisualEffectView is the backdrop */
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  letter-spacing:-0.01em; color:var(--t1);
+  overflow:hidden;
+}
+
+/* ---------- popover root (fills the native panel) ---------- */
+.popover{ position:relative; width:100%; height:100vh;
+  animation:pop .26s cubic-bezier(.2,.9,.25,1.05) both; }
+@keyframes pop{ from{ opacity:0; transform:translateY(-8px) scale(.985);} to{ opacity:1; transform:none;} }
+
+/* the glass panel — translucent over the real vibrancy */
+.panel{
+  position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
+  display:flex; flex-direction:column;
+  background:var(--glass-tint);
+  backdrop-filter:blur(12px) saturate(150%);
+  -webkit-backdrop-filter:blur(12px) saturate(150%);
+}
+.panel::before{ content:""; position:absolute; inset:0; border-radius:14px; pointer-events:none; z-index:3;
+  box-shadow:inset 0 .5px 0 var(--glass-spec), inset 0 0 0 .5px var(--glass-edge), inset 0 -.5px 0 var(--glass-edge-bottom);}
+.panel::after{ content:""; position:absolute; top:0; left:0; right:0; height:120px; pointer-events:none; z-index:1;
+  background:radial-gradient(120% 80% at 20% -10%, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+  opacity:.6; }
+[data-theme="dark"] .panel::after{ opacity:.35; }
+
+/* ---------- header ---------- */
+.header{ position:relative; z-index:4; display:flex; align-items:center; gap:11px; padding:13px 13px 10px; flex:none; }
+.app-tile{ width:30px; height:30px; border-radius:8px; flex:none; display:grid; place-items:center;
+  background:linear-gradient(150deg,#3a86ff,#6a5ae0 55%,#9b5de5);
+  box-shadow:0 3px 8px -2px rgba(90,90,224,.6), inset 0 1px 0 rgba(255,255,255,.5), inset 0 0 0 .5px rgba(255,255,255,.3); }
+.app-tile svg{ width:18px; height:18px; }
+.h-titles{ flex:1; min-width:0; }
+.h-title{ font-size:15px; font-weight:600; line-height:1.15; letter-spacing:-0.02em; }
+.h-sub{ font-size:11.5px; color:var(--t2); margin-top:1px; font-weight:400; }
+.h-sub b{ font-weight:590; color:var(--t1); }
+.h-sub .dot{ color:var(--t3); margin:0 5px; }
+.h-actions{ display:flex; gap:6px; align-items:center; }
+
+.icon-btn{ width:28px; height:28px; border-radius:8px; border:none; cursor:pointer; display:grid; place-items:center;
+  color:var(--t2); background:transparent; transition:all .15s ease; position:relative; }
+.icon-btn svg{ width:16px; height:16px; }
+.icon-btn:hover{ color:var(--t1); background:var(--glass-fill); box-shadow:inset 0 .5px 0 var(--glass-spec), 0 2px 5px -2px rgba(0,0,0,.18); }
+.icon-btn:active{ transform:scale(.94); }
+
+/* ---------- composer ---------- */
+.composer{ z-index:4; position:relative; padding:2px 13px 11px; flex:none; }
+.composer-inner{ display:flex; align-items:center; gap:7px; height:34px; padding:0 6px 0 10px;
+  border-radius:9px; background:var(--field); box-shadow:inset 0 0 0 .5px var(--sep), inset 0 1px 2px rgba(0,0,0,.05); }
+.composer-inner svg{ width:14px; height:14px; color:var(--t3); flex:none; }
+.composer-inner input{ flex:1; border:none; background:none; outline:none; font:inherit; font-size:13px; color:var(--t1); }
+.composer-inner input::placeholder{ color:var(--t3); }
+.composer-add{ width:24px; height:24px; border-radius:6px; border:none; cursor:pointer; display:grid; place-items:center;
+  color:#fff; background:var(--blue); box-shadow:var(--shadow-pill); transition:all .14s ease; }
+.composer-add:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+.composer-add:active{ transform:scale(.92); }
+.composer-add svg{ width:14px; height:14px; }
+
+/* ---------- segmented control ---------- */
+.tabs-wrap{ position:relative; z-index:4; padding:0 13px 11px; flex:none; }
+.seg{ position:relative; display:flex; height:30px; border-radius:9px; padding:2px;
+  background:var(--seg-track); box-shadow:inset 0 .5px 1.5px rgba(0,0,0,.12); }
+.seg-thumb{ position:absolute; top:2px; left:2px; height:26px; width:calc((100% - 4px)/4);
+  border-radius:7px; background:var(--seg-thumb); box-shadow:var(--shadow-pill);
+  transition:transform .34s cubic-bezier(.32,.72,0,1); }
+[data-theme="dark"] .seg-thumb{ box-shadow:0 2px 6px -1px rgba(0,0,0,.5), inset 0 .5px 0 rgba(255,255,255,.22); }
+.seg-btn{ position:relative; z-index:2; flex:1; border:none; background:none; cursor:pointer;
+  font-size:12.5px; font-weight:500; color:var(--t2); letter-spacing:-0.01em;
+  display:flex; align-items:center; justify-content:center; gap:5px; transition:color .2s ease; }
+.seg-btn.active{ color:var(--t1); font-weight:590; }
+.seg-btn .cnt{ font-size:10.5px; font-weight:600; min-width:15px; height:15px; padding:0 4px; border-radius:7px;
+  display:inline-flex; align-items:center; justify-content:center; color:var(--t2);
+  background:rgba(120,120,128,.18); font-variant-numeric:tabular-nums; transition:all .2s ease; }
+.seg-btn.active .cnt{ color:#fff; background:var(--blue); }
+[data-theme="dark"] .seg-btn.active .cnt{ color:#fff; }
+
+/* ---------- list ---------- */
+.list{ position:relative; z-index:4; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding:2px 9px 8px; }
+.list::-webkit-scrollbar{ width:9px; }
+.list::-webkit-scrollbar-thumb{ background:rgba(120,120,128,0); border-radius:5px; border:2px solid transparent; background-clip:padding-box; }
+.list:hover::-webkit-scrollbar-thumb{ background:rgba(120,120,128,.4); background-clip:padding-box; }
+
+.group-head{ display:flex; align-items:center; gap:7px; padding:9px 8px 5px; }
+.group-head .lbl{ font-size:10.5px; font-weight:640; text-transform:uppercase; letter-spacing:.05em; color:var(--t2); }
+.group-head .ln{ flex:1; height:.5px; background:var(--sep); }
+.group-head .gc{ font-size:10.5px; color:var(--t3); font-variant-numeric:tabular-nums; }
+
+.row{ position:relative; display:flex; align-items:flex-start; gap:11px; padding:9px 10px; border-radius:12px;
+  cursor:default; transition:transform .16s cubic-bezier(.2,.7,.3,1), box-shadow .18s ease, background .18s ease;
+  background:transparent; box-shadow:0 0 0 0 rgba(0,0,0,0); margin:1px 0; }
+.row::after{
+  content:""; position:absolute; inset:0; border-radius:12px; pointer-events:none; opacity:0;
+  background:linear-gradient(105deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.45) 50%, rgba(255,255,255,0) 70%);
+  transform:translateX(-30%); transition:opacity .2s ease; }
+.row:hover{ background:var(--row-card); box-shadow:var(--shadow-card-hover), inset 0 .5px 0 var(--glass-spec);
+  transform:translateY(-1px); }
+.row:hover::after{ opacity:1; animation:sheen .6s ease; }
+@keyframes sheen{ from{ transform:translateX(-40%);} to{ transform:translateX(40%);} }
+.row:active{ transform:translateY(0) scale(.996); box-shadow:var(--shadow-card); }
+.row.sel{ background:var(--row-card); box-shadow:0 0 0 2px var(--blue), var(--shadow-card); }
+.row.leaving{ animation:leave .3s cubic-bezier(.4,0,.6,1) forwards; }
+@keyframes leave{ 40%{ opacity:1;} to{ opacity:0; transform:translateX(14px); max-height:0; padding-top:0; padding-bottom:0; margin:0; } }
+.row.entering{ animation:enter .3s ease; }
+@keyframes enter{ from{ opacity:0; transform:translateY(-6px);} to{ opacity:1;} }
+
+.circle{ flex:none; width:19px; height:19px; margin-top:1px; border-radius:50%; cursor:pointer; position:relative;
+  box-shadow:inset 0 0 0 1.6px var(--ring,var(--t3)); transition:all .18s ease; background:transparent; }
+.circle.P0{ --ring:var(--red); }
+.circle.P1{ --ring:var(--orange); }
+.circle.P2{ --ring:var(--t3); }
+.circle:hover{ box-shadow:inset 0 0 0 9px color-mix(in srgb,var(--ring) 16%,transparent), inset 0 0 0 1.6px var(--ring); }
+.circle .ck{ position:absolute; inset:0; display:grid; place-items:center; opacity:0; transform:scale(.5); transition:all .2s ease; }
+.circle .ck svg{ width:12px; height:12px; color:#fff; }
+.circle.done{ background:var(--green); box-shadow:inset 0 0 0 1px rgba(0,0,0,.05); }
+.circle.done .ck{ opacity:1; transform:none; }
+
+.zicon{ flex:none; width:19px; height:19px; margin-top:1px; display:grid; place-items:center; color:var(--t3); }
+.zicon svg{ width:15px; height:15px; }
+.bicon{ flex:none; width:19px; height:19px; margin-top:1px; display:grid; place-items:center; color:var(--orange); }
+.bicon svg{ width:15px; height:15px; }
+
+.body{ flex:1; min-width:0; }
+.title{ font-size:13px; font-weight:450; line-height:1.32; color:var(--t1);
+  overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.row.is-done .title{ color:var(--t2); text-decoration:line-through; text-decoration-color:var(--t3); }
+.meta{ display:flex; align-items:center; gap:5px; margin-top:3px; font-size:11.5px; color:var(--t2); min-width:0; }
+.meta .agent-ico{ width:12px; height:12px; flex:none; }
+.meta .agent{ font-weight:500; color:var(--t2); }
+.meta .sep{ color:var(--t3); }
+.meta .due.overdue{ color:var(--red); font-weight:550; }
+.meta .due.fired{ color:var(--orange); font-weight:550; }
+
+.trail{ flex:none; position:relative; min-width:52px; display:flex; justify-content:flex-end; align-items:center; margin-top:1px; }
+.trail-default{ transition:opacity .15s ease; }
+.row:hover .trail-default{ opacity:0; pointer-events:none; }
+.chip{ font-size:10px; font-weight:700; letter-spacing:.02em; padding:2px 6px; border-radius:6px; line-height:1; }
+.chip.P0{ color:#fff; background:var(--red); box-shadow:0 1px 2px rgba(255,59,48,.4); }
+.chip.P1{ color:var(--orange); background:color-mix(in srgb,var(--orange) 16%,transparent); }
+.chip.P2{ color:var(--t2); background:rgba(120,120,128,.16); }
+.tag-z{ font-size:10.5px; color:var(--t2); font-weight:520; font-variant-numeric:tabular-nums; }
+.tag-done{ color:var(--green); display:grid; place-items:center; }
+.tag-done svg{ width:15px; height:15px; }
+
+.actions{ position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; gap:4px; opacity:0; pointer-events:none;
+  transition:opacity .15s ease; }
+.row:hover .actions{ opacity:1; pointer-events:auto; }
+.act{ width:26px; height:26px; border-radius:7px; border:none; cursor:pointer; display:grid; place-items:center;
+  color:var(--t2); background:var(--glass-fill); box-shadow:inset 0 .5px 0 var(--glass-spec), var(--shadow-card);
+  transition:all .14s ease; }
+.act svg{ width:14px; height:14px; }
+.act:hover{ color:#fff; transform:translateY(-1px); box-shadow:var(--shadow-card-hover); }
+.act.done:hover{ background:var(--green); }
+.act.snooze:hover{ background:var(--indigo); }
+.act.more:hover,.act.un:hover{ background:var(--blue); }
+
+/* ---------- empty state ---------- */
+.empty{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:48px 30px 54px; }
+.empty-ico{ width:60px; height:60px; border-radius:16px; display:grid; place-items:center; margin-bottom:16px;
+  background:var(--glass-fill); box-shadow:inset 0 .5px 0 var(--glass-spec), var(--shadow-card); color:var(--ec,var(--green)); }
+.empty-ico svg{ width:30px; height:30px; }
+.empty h3{ font-size:15px; font-weight:600; letter-spacing:-0.02em; }
+.empty p{ font-size:12.5px; color:var(--t2); margin-top:5px; line-height:1.45; max-width:240px; font-weight:400; }
+
+/* ---------- footer ---------- */
+.footer{ position:relative; z-index:4; display:flex; align-items:center; justify-content:space-between;
+  padding:9px 12px 10px; box-shadow:inset 0 .5px 0 var(--sep); flex:none; }
+.foot-hints{ display:flex; gap:9px; font-size:10.5px; color:var(--t3); align-items:center; }
+.kbd{ font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:10px; padding:1.5px 4px; border-radius:4px;
+  background:rgba(120,120,128,.16); color:var(--t2); line-height:1; box-shadow:inset 0 -.5px 0 rgba(0,0,0,.1); }
+.foot-actions{ display:flex; gap:4px; }
+
+/* ---------- context menu ---------- */
+.ctx{ position:fixed; z-index:50; min-width:188px; padding:5px; border-radius:11px;
+  background:var(--overlay-bg); backdrop-filter:blur(34px) saturate(190%); -webkit-backdrop-filter:blur(34px) saturate(190%);
+  box-shadow:0 18px 40px -10px rgba(0,0,0,.45), inset 0 .5px 0 var(--glass-spec), inset 0 0 0 .5px var(--glass-edge);
+  animation:ctxin .14s ease both; transform-origin:top right; }
+@keyframes ctxin{ from{ opacity:0; transform:scale(.96) translateY(-4px);} to{ opacity:1; } }
+.ctx button{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:14px;
+  border:none; background:none; cursor:pointer; font:inherit; font-size:13px; color:var(--t1);
+  padding:6px 9px; border-radius:7px; text-align:left; }
+.ctx button:hover{ background:var(--blue); color:#fff; }
+.ctx button:hover .mk{ color:rgba(255,255,255,.7); }
+.ctx button.danger{ color:var(--red); }
+.ctx button.danger:hover{ background:var(--red); color:#fff; }
+.ctx .mk{ font-size:11.5px; color:var(--t3); font-family:"SF Mono",ui-monospace,Menlo,monospace; }
+.ctx .div{ height:.5px; background:var(--sep); margin:5px 6px; }
+
+/* ---------- resize handle (optional, Arc-grade parity) ---------- */
+.resize-handle{ position:absolute; left:0; right:0; bottom:0; height:8px; cursor:ns-resize; z-index:9; }
+
+.hidden{ display:none !important; }
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none !important; transition:none !important; }
+}
+
+/* ---------- standalone (browser) mode ----------
+   Only active when opened in a plain browser (no native NSVisualEffectView behind
+   the page). Adds a desktop wallpaper so the glass reads, frames the panel as a
+   floating resizable window, and turns on real in-browser drag-to-resize. */
+html.standalone, body.standalone{
+  background:
+    radial-gradient(120% 90% at 12% 8%, #ffd5a6 0%, rgba(255,213,166,0) 46%),
+    radial-gradient(120% 100% at 88% 4%, #a9c6ff 0%, rgba(169,198,255,0) 50%),
+    radial-gradient(120% 120% at 78% 92%, #ffaad6 0%, rgba(255,170,214,0) 50%),
+    radial-gradient(120% 120% at 8% 96%, #9fe7ff 0%, rgba(159,231,255,0) 52%),
+    linear-gradient(135deg, #e9d6ff 0%, #d3e6ff 55%, #ffe6d2 100%);
+  background-attachment: fixed;
+}
+[data-theme="dark"] html.standalone, [data-theme="dark"] body.standalone{
+  background:
+    radial-gradient(120% 90% at 14% 6%, #5b2f6b 0%, rgba(91,47,107,0) 48%),
+    radial-gradient(120% 100% at 86% 4%, #1d3a73 0%, rgba(29,58,115,0) 52%),
+    radial-gradient(120% 120% at 80% 94%, #6b2150 0%, rgba(107,33,80,0) 50%),
+    linear-gradient(140deg, #181426 0%, #101a2e 55%, #251523 100%);
+  background-attachment: fixed;
+}
+body.standalone{ display:grid; place-items:center; padding:5vh 24px; overflow:auto; }
+body.standalone .popover{
+  width:392px; height:560px; max-height:90vh; min-width:320px; min-height:340px; flex:none;
+  border-radius:16px; overflow:hidden; resize:both;
+  box-shadow:0 30px 80px -22px rgba(20,18,40,.55), 0 10px 28px -14px rgba(20,18,40,.42),
+             0 0 0 .5px rgba(255,255,255,.18);
+}
+body.standalone .panel{ border-radius:16px; backdrop-filter:blur(30px) saturate(165%); -webkit-backdrop-filter:blur(30px) saturate(165%); }
+/* resize-grip hint at the corner */
+body.standalone .popover .grip{ position:absolute; right:4px; bottom:4px; width:11px; height:11px; z-index:20; pointer-events:none; opacity:.45;
+  background:
+    linear-gradient(135deg,transparent 46%,var(--t3) 46%,var(--t3) 56%,transparent 56%),
+    linear-gradient(135deg,transparent 70%,var(--t3) 70%,var(--t3) 80%,transparent 80%); }
+
+/* ============================================================
+   MINIMAL PASS — calmer, less gloss, more air (per feedback)
+   Kills the hover shine, quiets the glass + buttons, drops the
+   rainbow priority chips, adds breathing room.
+   ============================================================ */
+.panel{ backdrop-filter:blur(22px) saturate(128%); -webkit-backdrop-filter:blur(22px) saturate(128%); }
+.panel::after{ display:none; }                                  /* remove top gloss highlight */
+.panel::before{ box-shadow:inset 0 .5px 0 rgba(255,255,255,.40), inset 0 0 0 .5px var(--glass-edge); }
+[data-theme="dark"] .panel::before{ box-shadow:inset 0 .5px 0 rgba(255,255,255,.08), inset 0 0 0 .5px var(--glass-edge); }
+
+.list{ padding:2px 8px 10px; }
+.row{ padding:11px 10px; margin:0; transition:background .14s ease; }
+.row::after{ display:none !important; }                         /* kill the shine sweep */
+.row:hover{ background:rgba(120,120,128,.10); box-shadow:none; transform:none; }
+[data-theme="dark"] .row:hover{ background:rgba(255,255,255,.05); }
+.row:active{ transform:none; box-shadow:none; }
+.row.sel{ background:rgba(120,120,128,.12); box-shadow:none; }
+[data-theme="dark"] .row.sel{ background:rgba(255,255,255,.07); }
+
+.title{ font-weight:430; }
+.meta{ margin-top:2px; }
+
+/* monochrome completion dot — no priority colors */
+.circle{ box-shadow:inset 0 0 0 1.5px rgba(132,132,140,.55) !important; }
+.circle:hover{ box-shadow:inset 0 0 0 1.5px var(--blue) !important; }
+.circle.done{ background:var(--green); box-shadow:none !important; }
+
+/* hover actions: quiet ghost icons — no glass fill, no shadow, no color */
+.act{ width:24px; height:24px; background:none !important; box-shadow:none !important; color:var(--t3); }
+.act:hover{ background:rgba(120,120,128,.16) !important; color:var(--t1) !important; transform:none; }
+[data-theme="dark"] .act:hover{ background:rgba(255,255,255,.10) !important; }
+
+.app-tile{ background:linear-gradient(160deg,#5f8bf0,#7b6bf0); box-shadow:none; }
+.group-head .lbl{ font-weight:600; color:var(--t3); letter-spacing:.04em; }
+.icon-btn:hover{ background:rgba(120,120,128,.14) !important; box-shadow:none !important; color:var(--t1); }
+[data-theme="dark"] .icon-btn:hover{ background:rgba(255,255,255,.10) !important; }
+.composer-inner{ background:rgba(120,120,128,.10); box-shadow:inset 0 0 0 .5px var(--sep); }
+[data-theme="dark"] .composer-inner{ background:rgba(255,255,255,.06); }
+.done-head{ width:100%; display:flex; align-items:center; gap:7px; padding:13px 8px 6px; border:none; background:none; cursor:pointer; font:inherit; }
+.done-head .chev{ font-size:9px; width:9px; color:var(--t3); }
+.done-head .lbl{ font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--t3); }
+.done-head .gc{ font-size:10.5px; color:var(--t3); font-variant-numeric:tabular-nums; }
+.done-head:hover .lbl, .done-head:hover .chev{ color:var(--t2); }
+.seg-btn.active .cnt{ background:rgba(120,120,128,.30); color:var(--t1); }
+[data-theme="dark"] .seg-btn.active .cnt{ background:rgba(255,255,255,.18); color:#fff; }
+
+/* calmer standalone backdrop so the glass stays minimal */
+html.standalone, body.standalone{ background:linear-gradient(165deg,#edeff4 0%,#e3e7ef 100%) !important; }
+[data-theme="dark"] html.standalone, [data-theme="dark"] body.standalone{ background:linear-gradient(165deg,#1e1e24 0%,#161519 70%,#1b1820 100%) !important; }
+
+/* ============================================================
+   ART-DIRECTOR PASS 1 — calm-but-alive precision (Cue register)
+   Sharper hierarchy, more air, one structural hairline, tactile
+   hover, calm focus state. Refinement, not redesign.
+   ============================================================ */
+/* hover — more pronounced + a faint tactile edge (per feedback) */
+.row:hover{ background:rgba(120,120,128,.16) !important; box-shadow:inset 0 0 0 .5px rgba(0,0,0,.05) !important; }
+[data-theme="dark"] .row:hover{ background:rgba(255,255,255,.09) !important; box-shadow:inset 0 0 0 .5px rgba(255,255,255,.06) !important; }
+
+/* typographic hierarchy + rhythm */
+.title{ font-weight:470; letter-spacing:-0.012em; line-height:1.3; }
+.meta{ font-size:11px; color:var(--t3); margin-top:3px; }
+.meta .due, .group-head .gc, .tag-z{ font-variant-numeric:tabular-nums; }
+.group-head{ padding:15px 9px 5px; }
+.group-head .lbl{ font-size:10px; letter-spacing:.06em; }
+
+/* spatial rhythm — a touch more air, calmer gutters */
+.row{ padding:10px 11px; }
+.list{ padding:4px 9px 10px; }
+.header{ padding:14px 14px 10px; box-shadow:inset 0 -.5px 0 var(--sep); }   /* one structural hairline */
+.composer{ padding:11px 13px 12px; }
+
+/* composer — taller field + a calm accent focus state (the one "alive" moment) */
+.composer-inner{ height:36px; transition:box-shadow .2s ease, background .2s ease; }
+.composer-inner:focus-within{ box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--blue) 50%, transparent); }
+
+/* ============================================================
+   ART-DIRECTOR PASS 2 — state-revealing motion (Cue: calm, alive)
+   Behavior only — nothing visual added. Reduced-motion respected.
+   ============================================================ */
+.popover{ animation:pop .34s cubic-bezier(.2,.9,.25,1.04) both; }
+@keyframes appear{ from{ opacity:0; transform:translateY(7px); } to{ opacity:1; transform:none; } }
+.row.appear{ animation:appear .42s cubic-bezier(.2,.8,.2,1) both; }
+.row{ transition:background .16s ease, box-shadow .18s ease, transform .12s cubic-bezier(.2,.7,.3,1); }
+.row:active{ transform:scale(.995); }                       /* gentle press, no lift */
+.row.leaving{ animation:leave .32s cubic-bezier(.4,0,.2,1) forwards !important; }
+@keyframes leave{ 30%{ opacity:.55; } to{ opacity:0; transform:scale(.97); max-height:0; padding-top:0; padding-bottom:0; margin:0; } }
+.circle{ transition:box-shadow .18s ease, background .24s cubic-bezier(.2,1.4,.4,1); }
+.circle.done .ck{ animation:checkpop .34s cubic-bezier(.2,1.6,.45,1) both; }
+@keyframes checkpop{ 0%{ opacity:0; transform:scale(.4); } 60%{ opacity:1; transform:scale(1.14); } 100%{ transform:scale(1); } }
+.done-head .chev{ display:inline-block; transition:transform .2s ease; }
+</style>
+</head>
+<body>
+  <!-- popover root: fills the native NSPanel -->
+  <div class="popover">
+    <div class="panel">
+
+      <!-- header -->
+      <div class="header">
+        <div class="app-tile">
+          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="8" cy="8" r="5.4"/><circle cx="8" cy="8" r="2.6"/><circle cx="8" cy="8" r=".8" fill="#fff" stroke="none"/></svg>
+        </div>
+        <div class="h-titles">
+          <div class="h-title">Agent Reminders</div>
+        </div>
+        <div class="h-actions">
+          <button class="icon-btn" id="revealBtn" title="Reveal store in Finder">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.2 1.4h5.2A1.5 1.5 0 0 1 16 5.9v0"/><path d="M1.6 6h12.8a.6.6 0 0 1 .59.72l-1.1 5.4a1 1 0 0 1-.98.8H3.1a1 1 0 0 1-.98-.8L1 6.7A.6.6 0 0 1 1.6 6Z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- composer -->
+      <div class="composer">
+        <div class="composer-inner">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 3.3v9.4M3.3 8h9.4"/></svg>
+          <input id="composerInput" placeholder="Add a to-do…" autocomplete="off">
+        </div>
+      </div>
+
+      <!-- list -->
+      <div class="list" id="list"></div>
+
+      <!-- footer -->
+      <div class="footer">
+        <div class="foot-hints">
+          <span><span class="kbd">⏎</span> add</span>
+          <span><span class="kbd">C</span> complete</span>
+          <span><span class="kbd">S</span> snooze</span>
+        </div>
+        <div class="foot-actions">
+          <button class="icon-btn" id="quitBtn" title="Quit">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5H4A1.5 1.5 0 0 0 2.5 4v8A1.5 1.5 0 0 0 4 13.5h2"/><path d="M10 11l3-3-3-3M13 8H6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- resize handle -->
+      <div class="resize-handle" id="resizeHandle"></div>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   STANDALONE BROWSER HARNESS
+   Runs ONLY when there is no native bridge (i.e. opened in a browser, not the
+   WKWebView). Installs a mock `window.__native` with sample Agent Reminders data,
+   working mutations, and panel resize — so the same panel.html is fully testable
+   in a browser AND drives the native app unchanged. The native side injects
+   window.__native at document-start, so this whole block is skipped there.
+   ============================================================ */
+(function(){
+  if (window.__native) return;                       // real bridge present → skip
+  document.documentElement.classList.add('standalone');
+  document.body.classList.add('standalone');
+  // corner resize-grip hint
+  var grip=document.createElement('div'); grip.className='grip';
+  var pop=document.querySelector('.popover'); if(pop) pop.appendChild(grip);
+
+  var iso = function(ms){ return new Date(ms).toISOString(); };
+  var now = Date.now(), seq = 100;
+  var items = [
+    {id:'a1',  kind:'todo',     text:'Approve draft reply to Sarah Chen — re: Q3 renewal', status:'open'},
+    {id:'a2',  kind:'reminder', text:'Reconcile 14 Ramp transactions flagged uncategorized', status:'open', fireAt:iso(now+28*60000)},
+    {id:'a3',  kind:'reminder', text:'Sign NPI partnership addendum in DocuSign', status:'fired', fireAt:iso(now-2*3600000), firedAt:iso(now-2*3600000)},
+    {id:'a4',  kind:'todo',     text:'Rotate 3 API keys flagged in the security sweep', status:'open'},
+    {id:'a5',  kind:'reminder', text:'Review outreach to 12 enterprise leads before send', status:'open', fireAt:iso(now+3*3600000)},
+    {id:'a6',  kind:'todo',     text:'Triage 23 newsletters into Read Later', status:'open'},
+    {id:'a7',  kind:'reminder', text:'Prep brief for Ken sync', status:'open', fireAt:iso(now+20*3600000)},
+    {id:'a8',  kind:'reminder', text:'Compile competitor pricing teardown', status:'open', fireAt:iso(now+7*3600000)},
+    {id:'a9',  kind:'todo',     text:'Deploy arcana-research.com hotfix', status:'done', doneAt:iso(now-3*3600000)},
+    {id:'a10', kind:'reminder', text:'Unsubscribe from 8 promotional senders', status:'done', doneAt:iso(now-5*3600000)},
+  ];
+  var listeners = {};
+  function emit(ev, data){ (listeners[ev]||[]).forEach(function(cb){ try{ cb(data); }catch(e){ console.warn(e); } }); }
+  function push(){ emit('reminders', items.slice()); }
+  function find(id){ for(var i=0;i<items.length;i++){ if(items[i].id===id) return items[i]; } return null; }
+
+  function parseTime(v){
+    if(!v) return null;
+    v = String(v).trim().toLowerCase();
+    if(v==='now') return iso(Date.now());
+    var m = v.match(/^(\d+)\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/);
+    if(m){ var n=+m[1], u=m[2][0], mul={s:1000,m:60000,h:3600000,d:86400000}[u]||60000; return iso(Date.now()+n*mul); }
+    var D=new Date();
+    if(v==='later')   return iso(Date.now()+3600000);
+    if(v==='today')   { D.setHours(17,0,0,0); if(D<new Date()) D.setDate(D.getDate()+1); return iso(D.getTime()); }
+    if(v==='tonight') { D.setHours(20,0,0,0); if(D<new Date()) D.setDate(D.getDate()+1); return iso(D.getTime()); }
+    if(v==='tomorrow'){ D.setDate(D.getDate()+1); D.setHours(9,0,0,0); return iso(D.getTime()); }
+    var abs=new Date(v); return isNaN(abs.getTime())?null:iso(abs.getTime());
+  }
+  function resizeBy(dh){
+    var p=document.querySelector('.popover'); if(!p) return;
+    var h=p.getBoundingClientRect().height + (dh||0);
+    p.style.height = Math.max(340, Math.min(940, h)) + 'px';
+  }
+
+  window.__native = {
+    on: function(ev, cb){ (listeners[ev] || (listeners[ev]=[])).push(cb); },
+    dispatch: function(){},                              // native→js only
+    call: function(action, p){
+      p = p || {};
+      switch(action){
+        case 'list':        setTimeout(push, 0); break;
+        case 'done':        { var it=find(p.id); if(it){ it.status='done'; it.doneAt=iso(Date.now()); delete it.firedAt; } push(); break; }
+        case 'snooze':      { var s=find(p.id); if(s){ s.status='open'; s.kind='reminder'; s.fireAt=parseTime(p.fireAt)||iso(Date.now()+3600000); delete s.firedAt; } push(); break; }
+        case 'delete':      { items=items.filter(function(x){ return x.id!==p.id; }); push(); break; }
+        case 'addTodo':     { items.unshift({id:'n'+(++seq), kind:'todo', text:p.text, status:'open'}); push(); break; }
+        case 'addReminder': { items.unshift({id:'n'+(++seq), kind:'reminder', text:p.text, status:'open', fireAt:parseTime(p.fireAt)||iso(Date.now()+3600000)}); push(); break; }
+        case 'resize':      resizeBy(p.dh); break;
+        case 'revealStore': case 'quit': break;
+      }
+    }
+  };
+})();
+</script>
+
+<script>
+"use strict";
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+
+/* ---------------- icons ---------------- */
+const I = {
+  check:'<path d="M3.5 8.4l2.9 2.9L12.6 5"/>',
+  clock:'<circle cx="8" cy="8.3" r="4.7"/><path d="M8 5.8v2.7l1.8 1.1"/>',
+  bell:'<path d="M4 6.5a4 4 0 0 1 8 0c0 3 1 4 1 4H3s1-1 1-4Z"/><path d="M6.6 13a1.6 1.6 0 0 0 2.8 0"/>',
+  unsnooze:'<path d="M5 4 2.5 6.5 5 9"/><path d="M2.5 6.5H10a3.5 3.5 0 0 1 0 7H6"/>',
+  more:'<circle cx="3.4" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="12.6" cy="8" r="1.2" fill="currentColor" stroke="none"/>',
+  seal:'<path d="M8 1.7l1.7 1.2 2-.3.7 1.9 1.7 1.1-.6 2 .6 2-1.7 1.1-.7 1.9-2-.3L8 14.3l-1.7-1.2-2 .3-.7-1.9L1.9 10.4l.6-2-.6-2 1.7-1.1.7-1.9 2 .3z"/><path d="M5.6 8.1l1.7 1.7L10.5 6.3"/>',
+  moon:'<path d="M12.6 9.2A5 5 0 1 1 6.8 3.4 4.1 4.1 0 0 0 12.6 9.2Z"/>',
+  todo:'<rect x="2.6" y="2.6" width="10.8" height="10.8" rx="2.4"/><path d="M5.2 8l2 2 3.6-4"/>',
+};
+function svg(name, w=16, sw=1.4){ return `<svg viewBox="0 0 16 16" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${I[name]||''}</svg>`; }
+
+/* ---------------- data ----------------
+   `tasks` is now hydrated from the native store via renderFromStore(items).
+   Each entry is a view-model derived from an AgentReminder. */
+let tasks = [];
+const state = { sel:-1, showDone:false };
+const seen = new Set();   // ids already animated in — so only NEW rows reveal
+
+/* ---------------- store → view-model mapping ----------------
+   AgentReminder fields: id, kind('todo'|'reminder'), text, status
+   ('open'|'fired'|'done'|'cancelled'|'expired'), fireAt (ISO|null), firedAt, doneAt.
+   Bucket: pending todo / upcoming reminder / overdue / fired / snoozed-later / done. */
+function dueLabel(fireAt){
+  // Mirrors MenuPanelView.dueLabel: <=0 => "due", <60m => "in Nm",
+  // <24h => "in Nh", else "in Nd".
+  if(!fireAt) return '';
+  const ms = new Date(fireAt).getTime() - Date.now();
+  if(isNaN(ms)) return '';
+  if(ms <= 0) return 'due';
+  const mins = Math.round(ms/60000);
+  if(mins < 60) return 'in '+mins+'m';
+  const hrs = Math.round(mins/60);
+  if(hrs < 24) return 'in '+hrs+'h';
+  const days = Math.round(hrs/24);
+  return 'in '+days+'d';
+}
+function shortWake(fireAt){
+  if(!fireAt) return '';
+  const d = new Date(fireAt); if(isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+}
+function priorityFor(vm){
+  // Faux priority derived from due-ness (the store has no priority field).
+  if(vm.dueState==='overdue' || vm.status==='fired') return 'P0';
+  if(vm.dueState==='today') return 'P1';
+  return 'P2';
+}
+function toViewModel(item){
+  const vm = { id:item.id, title:item.text, kind:item.kind, raw:item };
+  const fireAt = item.fireAt || null;
+  const future = fireAt ? (new Date(fireAt).getTime() - Date.now() > 0) : false;
+
+  if(item.status==='done'){
+    vm.status='done';
+    vm.completed = item.doneAt ? shortWake(item.doneAt) : '';
+  } else if(item.status==='fired'){
+    vm.status='fired';
+    vm.due='Needs attention'; vm.dueState='overdue';
+  } else if(item.status==='cancelled' || item.status==='expired'){
+    vm.status='cancelled';
+  } else { // open
+    if(item.kind==='todo' && !fireAt){
+      vm.status='pending'; vm.due='To-do'; vm.dueState='today';
+    } else if(fireAt && future){
+      // upcoming reminder (a snooze is just an open reminder with a future fireAt)
+      const label = dueLabel(fireAt);
+      const within6h = (new Date(fireAt).getTime() - Date.now()) < 6*3600*1000;
+      vm.due = label;
+      vm.wake = shortWake(fireAt);
+      vm.wakeShort = shortWake(fireAt);
+      vm.status = within6h ? 'pending' : 'snoozed';
+      vm.dueState = within6h ? 'today' : 'upcoming';
+    } else { // open + past fireAt that hasn't fired yet
+      vm.status='pending'; vm.due='due'; vm.dueState='overdue';
+    }
+  }
+  vm.priority = priorityFor(vm);
+  return vm;
+}
+function renderFromStore(items){
+  tasks = (items||[]).filter(it=> it.status!=='cancelled' && it.status!=='expired').map(toViewModel);
+  render();
+}
+
+/* ---------------- counts / filtering ---------------- */
+function sections(){
+  const active = tasks.filter(t=>t.status!=='done');
+  return [
+    ['overdue','Overdue',   active.filter(t=>t.dueState==='overdue')],
+    ['today','Today',       active.filter(t=>t.dueState==='today')],
+    ['upcoming','Upcoming', active.filter(t=>t.dueState==='upcoming')],
+  ];
+}
+function visible(){
+  let l = [];
+  sections().forEach(s=>{ l = l.concat(s[2]); });
+  if(state.showDone) l = l.concat(tasks.filter(t=>t.status==='done'));
+  return l;
+}
+
+/* ---------------- row rendering ---------------- */
+function metaLine(t){
+  const kIco=`<span class="agent-ico" style="color:var(--t3)">${svg(t.kind==='reminder'?'bell':'todo',12,1.5)}</span>`;
+  if(t.status==='fired')   return `<span class="due fired">Needs attention</span>`;
+  if(t.status==='snoozed') return `<span class="agent">Wakes ${t.wake||''}</span>`;
+  if(t.status==='done')    return `<span class="agent">Completed ${t.completed||''}</span>`;
+  // a plain to-do is just its title — no meta line; reminders show the time
+  if(t.kind==='todo' && (!t.due || t.due==='To-do')) return '';
+  const dueCls = t.dueState==='overdue' ? 'overdue' : '';
+  return `${kIco}<span class="due ${dueCls}">${t.due||''}</span>`;
+}
+function leading(t){
+  if(t.status==='snoozed') return `<div class="zicon">${svg('clock',15,1.4)}</div>`;
+  if(t.status==='fired')   return `<div class="bicon">${svg('bell',15,1.4)}</div>`;
+  if(t.status==='done')    return `<div class="circle ${t.priority} done"><span class="ck">${svg('check',12,2)}</span></div>`;
+  return `<div class="circle ${t.priority}" data-circle="${t.id}"><span class="ck">${svg('check',12,2)}</span></div>`;
+}
+function trailDefault(t){
+  if(t.status==='snoozed') return `<span class="tag-z">${t.wakeShort||''}</span>`;
+  if(t.status==='done')    return `<span class="tag-done">${svg('check',15,2)}</span>`;
+  return '';   // pending: clean right side; the time lives in the meta line
+}
+function actionsFor(t){
+  // minimal: complete via the left circle; hover reveals snooze + a single more menu
+  if(t.status==='snoozed') return `<button class="act un" data-act="unsnooze" title="Wake now">${svg('unsnooze',14,1.5)}</button>`;
+  if(t.status==='done')    return `<button class="act un" data-act="restore" title="Restore">${svg('unsnooze',14,1.5)}</button>`;
+  return `<button class="act snooze" data-act="snooze" title="Snooze">${svg('clock',14,1.5)}</button><button class="act more" data-act="more" title="More">${svg('more',14)}</button>`;
+}
+function rowHTML(t, idx){
+  const isDone = t.status==='done';
+  const meta = metaLine(t);
+  return `<div class="row ${isDone?'is-done':''} ${state.sel===idx?'sel':''}" data-id="${t.id}" data-idx="${idx}">
+    ${leading(t)}
+    <div class="body">
+      <div class="title">${escapeHTML(t.title)}</div>
+      ${meta ? `<div class="meta">${meta}</div>` : ''}
+    </div>
+    <div class="trail">
+      <div class="trail-default">${trailDefault(t)}</div>
+      <div class="actions">${actionsFor(t)}</div>
+    </div>
+  </div>`;
+}
+function escapeHTML(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------------- empty state ---------------- */
+function emptyHTML(){ return `<div class="empty"><div class="empty-ico" style="--ec:var(--green)">${svg('seal',30,1.5)}</div><h3>All clear</h3><p>Nothing needs you right now. New to-dos and reminders show up here.</p></div>`; }
+
+function render(){
+  const el = $('#list');
+  const secs = sections().filter(s=>s[2].length);
+  const done = tasks.filter(t=>t.status==='done');
+  if(!secs.length && !done.length){ el.innerHTML = emptyHTML(); return; }
+
+  let html='', idx=0;
+  secs.forEach(([key,label,items])=>{
+    html += `<div class="group-head"><span class="lbl">${label}</span><span class="ln"></span><span class="gc">${items.length}</span></div>`;
+    items.forEach(t=>{ html += rowHTML(t, idx++); });
+  });
+  if(done.length){
+    html += `<button class="done-head" id="doneHead"><span class="chev">${state.showDone?'▾':'▸'}</span><span class="lbl">Completed</span><span class="ln"></span><span class="gc">${done.length}</span></button>`;
+    if(state.showDone){ done.forEach(t=>{ html += rowHTML(t, idx++); }); }
+  }
+  el.innerHTML = html;
+
+  // state-revealing: only rows we haven't shown before animate in (stagger on
+  // first paint; a single new row on add). Existing rows never re-animate.
+  let d=0;
+  el.querySelectorAll('.row').forEach(r=>{
+    if(!seen.has(r.dataset.id)){ seen.add(r.dataset.id); r.classList.add('appear'); r.style.animationDelay=(d++ * 24)+'ms'; }
+  });
+}
+
+/* (tabs removed — single grouped list, sections only) */
+
+/* ---------------- bridge actions ----------------
+   Optimistic out-animation, then call the native bridge. The bridge writes the
+   store and pushes a fresh `reminders` event, which re-renders authoritatively. */
+function rowEl(id){ return $(`.row[data-id="${id}"]`); }
+function animateOut(id, after){
+  const r=rowEl(id); if(!r){ after(); return; }
+  r.classList.add('leaving');
+  setTimeout(after, 290);
+}
+function complete(id){
+  const r=rowEl(id); if(r){ const ci=$('.circle',r); if(ci){ ci.classList.add('done'); } }
+  setTimeout(()=>animateOut(id, ()=>native('done',{id})), 160);
+}
+function snoozeTo(id, fireAt){ animateOut(id, ()=>native('snooze',{id, fireAt})); }
+function unsnooze(id){ animateOut(id, ()=>native('snooze',{id, fireAt:'now'})); }
+function restore(id){ animateOut(id, ()=>native('snooze',{id, fireAt:'1h'})); }
+function dismiss(id){ animateOut(id, ()=>native('delete',{id})); }
+
+function native(action, payload){
+  if(window.__native && window.__native.call){ window.__native.call(action, payload||{}); }
+}
+
+/* ---------------- context menus ---------------- */
+let openCtx=null;
+function closeCtx(){ if(openCtx){ openCtx.remove(); openCtx=null; document.removeEventListener('mousedown', onDocDown); } }
+function onDocDown(e){ if(openCtx && !openCtx.contains(e.target)) closeCtx(); }
+function menu(anchor, items){
+  closeCtx();
+  const m=document.createElement('div'); m.className='ctx';
+  m.innerHTML = items.map(it=> it.div ? '<div class="div"></div>'
+    : `<button class="${it.danger?'danger':''}" data-v="${it.v}">${it.l}${it.k?`<span class="mk">${it.k}</span>`:''}</button>`).join('');
+  document.body.appendChild(m);
+  const r=anchor.getBoundingClientRect();
+  let left=r.right-188, top=r.bottom+6;
+  if(left<8) left=8;
+  if(top+m.offsetHeight>window.innerHeight-8) top=r.top-m.offsetHeight-6;
+  m.style.left=left+'px'; m.style.top=top+'px';
+  m.addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; const v=b.dataset.v; closeCtx(); items.find(i=>i.v===v)?.fn?.(); });
+  openCtx=m; setTimeout(()=>document.addEventListener('mousedown', onDocDown),0);
+}
+function snoozeMenu(anchor, id){
+  menu(anchor, [
+    {v:'10', l:'10 minutes', fn:()=>snoozeTo(id,'10m')},
+    {v:'1h', l:'1 hour',     fn:()=>snoozeTo(id,'1h')},
+    {v:'eve',l:'This evening', k:'tonight', fn:()=>snoozeTo(id,'tonight')},
+    {v:'tom',l:'Tomorrow',   k:'9:00 AM', fn:()=>snoozeTo(id,'tomorrow')},
+  ]);
+}
+function rowMenu(anchor, t){
+  const items=[];
+  if(t.status==='pending'||t.status==='fired'){
+    items.push({v:'done', l:'Mark complete', k:'C', fn:()=>complete(t.id)});
+    items.push({v:'snz', l:'Snooze…', k:'S', fn:()=>snoozeMenu(anchor,t.id)});
+  } else if(t.status==='snoozed'){
+    items.push({v:'wake', l:'Wake now', fn:()=>unsnooze(t.id)});
+  } else {
+    items.push({v:'restore', l:'Move back to pending', fn:()=>restore(t.id)});
+  }
+  items.push({div:true});
+  items.push({v:'del', l:'Delete', danger:true, fn:()=>dismiss(t.id)});
+  menu(anchor, items);
+}
+
+/* ---------------- list interactions ---------------- */
+$('#list').addEventListener('click', e=>{
+  if(e.target.closest('#doneHead')){ state.showDone=!state.showDone; render(); return; }
+  const circle=e.target.closest('[data-circle]');
+  if(circle){ complete(circle.dataset.circle); return; }
+  const act=e.target.closest('[data-act]');
+  if(act){
+    const id=act.closest('.row').dataset.id;
+    const t=tasks.find(x=>x.id===id);
+    const a=act.dataset.act;
+    if(a==='done') complete(id);
+    else if(a==='snooze') snoozeMenu(act, id);
+    else if(a==='unsnooze') unsnooze(id);
+    else if(a==='restore') restore(id);
+    else if(a==='more' && t) rowMenu(act, t);
+    return;
+  }
+});
+
+/* ---------------- composer ---------------- */
+// Relative-time grammar the store understands; if the text starts/ends with one
+// of these, route to addReminder with that fireAt, else addTodo.
+const TIME_RE = /\b(\d+\s*(?:s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)|later|today|tonight|tomorrow)\b/i;
+function submitComposer(){
+  const input = $('#composerInput');
+  const text = input.value.trim();
+  if(!text){ return; }
+  const m = text.match(TIME_RE);
+  if(m){
+    // Strip the trailing/leading time token from the visible text.
+    const fireAt = m[1].replace(/\s+/g,'').toLowerCase();
+    const cleaned = text.replace(m[0], '').replace(/\s{2,}/g,' ').trim() || text;
+    native('addReminder', {text:cleaned, fireAt});
+  } else {
+    native('addTodo', {text});
+  }
+  input.value='';
+}
+$('#composerInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); submitComposer(); } });
+
+/* ---------------- header / footer ---------------- */
+$('#revealBtn').addEventListener('click', ()=>native('revealStore'));
+$('#quitBtn').addEventListener('click', ()=>native('quit'));
+
+/* ---------------- keyboard ---------------- */
+document.addEventListener('keydown', e=>{
+  if(openCtx && e.key==='Escape'){ closeCtx(); return; }
+  const typing = document.activeElement===$('#composerInput');
+  if(typing) return;
+
+  const list=visible();
+  if(e.key==='ArrowDown'){ e.preventDefault(); state.sel=Math.min(list.length-1, state.sel+1); render(); scrollSel(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); state.sel=Math.max(0, state.sel-1); render(); scrollSel(); }
+  else if((e.key==='c'||e.key==='C') && state.sel>=0){ const t=list[state.sel]; if(t && t.status!=='done') complete(t.id); }
+  else if((e.key==='s'||e.key==='S') && state.sel>=0){ const t=list[state.sel]; if(t && (t.status==='pending'||t.status==='fired')) snoozeTo(t.id,'1h'); }
+});
+function scrollSel(){ const r=$('.row.sel'); if(r) r.scrollIntoView({block:'nearest'}); }
+
+/* ---------------- resize handle ---------------- */
+(function(){
+  const h = $('#resizeHandle'); if(!h) return;
+  let lastY = 0, dragging = false;
+  h.addEventListener('mousedown', e=>{ dragging=true; lastY=e.screenY; e.preventDefault(); });
+  window.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const dy = e.screenY - lastY;       // drag DOWN grows the panel
+    lastY = e.screenY;
+    if(dy !== 0) native('resize', {dh: dy});
+  });
+  window.addEventListener('mouseup', ()=>{ dragging=false; });
+})();
+
+/* ---------------- theme follows system ---------------- */
+function applySystemTheme(){
+  const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+}
+if(window.matchMedia){
+  applySystemTheme();
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySystemTheme);
+}
+
+/* ---------------- hydrate + subscribe ---------------- */
+window.__native.on('reminders', renderFromStore);
+window.__native.on('error', e=>console.warn('bridge error', e));
+window.__native.call('list');
+render();   // paint the empty state immediately while the first push lands
+</script>
+</body>
+</html>

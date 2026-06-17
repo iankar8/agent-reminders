@@ -35,6 +35,16 @@ export interface AgentReminderInput {
   expiresAt?: string;
 }
 
+export interface AgentReminderUpdate {
+  text?: string;
+  kind?: ReminderKind;
+  target?: ReminderTarget;
+  triggerPrompt?: string;
+  fireAt?: string;
+  expiresAt?: string;
+  note?: string;
+}
+
 export interface ReminderListFilter {
   targetId?: string;
   targetKind?: ReminderTargetKind;

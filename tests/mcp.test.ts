@@ -53,6 +53,16 @@ describe("MCP stdio server", () => {
       expect(todo.kind).toBe("todo");
       expect(todo.target.id).toBe("clean-thread");
 
+      const updatedResult = await client.callTool({
+        name: "item_update",
+        arguments: { id: todo.id, text: "Verify MCP path (edited)" }
+      });
+      const updatedTodo = parseTextResult(updatedResult);
+
+      expect(updatedTodo.text).toBe("Verify MCP path (edited)");
+      expect(updatedTodo.status).toBe("open");
+      expect(updatedTodo.target.id).toBe("clean-thread");
+
       await client.callTool({
         name: "reminder_set",
         arguments: {

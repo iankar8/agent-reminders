@@ -155,4 +155,48 @@ describe("ReminderStore", () => {
     expect(active[0]?.note).toContain("Dispatch failed");
     expect(active[0]?.fireAt).toBe("2026-06-15T12:02:00.000Z");
   });
+
+  it("updates item text while preserving status and target", async () => {
+    const item = await store.add({
+      kind: "todo",
+      text: "Draft note",
+      target: { kind: "agent", id: "writer" }
+    });
+
+    now = new Date("2026-06-15T12:30:00.000Z");
+    const updated = await store.update(item.id, { text: "Draft the note" });
+
+    expect(updated.text).toBe("Draft the note");
+    expect(updated.status).toBe("open");
+    expect(updated.target).toEqual({ kind: "agent", id: "writer" });
+    expect(updated.updatedAt).toBe("2026-06-15T12:30:00.000Z");
+  });
+
+  it("clears the fired marker when fireAt changes so reminders fire again", async () => {
+    const item = await store.add({
+      kind: "reminder",
+      text: "Ping me",
+      fireAt: "1m"
+    });
+
+    now = new Date("2026-06-15T12:01:00.000Z");
+    await store.fireDue();
+    expect((await store.list())[0]?.status).toBe("fired");
+
+    const updated = await store.update(item.id, { fireAt: "10m" });
+    expect(updated.status).toBe("open");
+    expect(updated.firedAt).toBeUndefined();
+    expect(updated.fireAt).toBe("2026-06-15T12:11:00.000Z");
+
+    now = new Date("2026-06-15T12:11:00.000Z");
+    const fired = await store.fireDue();
+    expect(fired).toHaveLength(1);
+    expect(fired[0]?.id).toBe(item.id);
+  });
+
+  it("throws when updating a missing id", async () => {
+    await expect(store.update("missing", { text: "noop" })).rejects.toThrow(
+      "Reminder not found: missing"
+    );
+  });
 });

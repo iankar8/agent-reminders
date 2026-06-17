@@ -18,6 +18,7 @@ export { ReminderStore } from "./store.js";
 export type {
   AgentReminder,
   AgentReminderInput,
+  AgentReminderUpdate,
   FiredReminder,
   ReminderKind,
   ReminderListFilter,
