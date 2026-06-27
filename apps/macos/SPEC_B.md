@@ -1,6 +1,6 @@
 # SPEC B — Prototype B: Native shell + WKWebView panel
 
-**Goal:** A NEW SwiftPM app at `apps/macos-web` that opens a resizable, borderless `NSPanel` under an `NSStatusItem`, hosting a `WKWebView` that loads the polished HTML/CSS/JS panel adapted from `/Users/iankar/cc-menubar-mockup/index.html`. Transparent web background over an `NSVisualEffectView` for real vibrancy. Drag-to-resize + remembered size. A `WKScriptMessageHandler` bridge so JS reads/writes the same `~/.agent-reminders/reminders.json` store via `AgentRemindersCore`. Acceptance gate: `MOTION_RUBRIC.md` ≥ 9 per dimension.
+**Goal:** A NEW SwiftPM app at `apps/macos-web` that opens a resizable, borderless `NSPanel` under an `NSStatusItem`, hosting a `WKWebView` that loads the polished HTML/CSS/JS panel in `Resources/panel.html`. Transparent web background over an `NSVisualEffectView` for real vibrancy. Drag-to-resize + remembered size. A `WKScriptMessageHandler` bridge so JS reads/writes the same `~/.agent-reminders/reminders.json` store via `AgentRemindersCore`. Acceptance gate: `MOTION_RUBRIC.md` ≥ 9 per dimension.
 
 **Why a separate app:** This is a parallel prototype to compare against Prototype A (SPEC_A). It must not disturb `apps/macos`. It *reuses* `AgentRemindersCore` as a local SwiftPM path dependency — zero duplication of store/model logic.
 
@@ -22,7 +22,7 @@ apps/macos-web/
       WeakMessageHandler.swift        # retain-cycle breaker for userContentController.add
       PanelFrameStore.swift           # UserDefaults frame save/restore (same as SPEC_A §7)
       Resources/
-        panel.html                    # adapted from cc-menubar-mockup/index.html
+        panel.html                    # self-contained web UI for the panel
   Tests/
     AgentRemindersWebTests/
       BridgeTests.swift               # action routing → store, JSON shape round-trip
@@ -280,7 +280,7 @@ The pushed `items` array is the exact `AgentReminder` shape (`id, kind, target, 
 
 ## 6. `panel.html` — adapting the mockup
 
-Start from `/Users/iankar/cc-menubar-mockup/index.html` (868 lines, fully self-contained: SF Pro, glass material, light/dark tokens, segmented tabs, animated rows with `pop`/`enter`/`leave`/`sheen` keyframes, settings sheet, context menus). Adaptations:
+Start from a self-contained HTML mockup (SF Pro, glass material, light/dark tokens, segmented tabs, animated rows with `pop`/`enter`/`leave`/`sheen` keyframes, settings sheet, context menus). Adaptations:
 
 1. **Strip the demo chrome.** Remove the `.scene` / `.wallpaper` / `.menubar` simulation wrappers (lines ~395–417) — those exist only to fake the desktop behind the popover. Keep `.popover > .panel` as the root and make `body{background:transparent;}` (the real `NSVisualEffectView` is the backdrop now). Remove the `.pointer` beak or keep it — the native panel has its own shadow; a CSS beak is optional.
 2. **Transparent root.** `html,body{background:transparent;}`; the `.panel` keeps its `--glass-tint` + `backdrop-filter` so it reads as glass over the vibrancy.

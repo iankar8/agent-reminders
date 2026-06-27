@@ -471,16 +471,16 @@ html.standalone, body.standalone{ background:linear-gradient(165deg,#edeff4 0%,#
   var iso = function(ms){ return new Date(ms).toISOString(); };
   var now = Date.now(), seq = 100;
   var items = [
-    {id:'a1',  kind:'todo',     text:'Approve draft reply to Sarah Chen — re: Q3 renewal', status:'open'},
-    {id:'a2',  kind:'reminder', text:'Reconcile 14 Ramp transactions flagged uncategorized', status:'open', fireAt:iso(now+28*60000)},
-    {id:'a3',  kind:'reminder', text:'Sign NPI partnership addendum in DocuSign', status:'fired', fireAt:iso(now-2*3600000), firedAt:iso(now-2*3600000)},
-    {id:'a4',  kind:'todo',     text:'Rotate 3 API keys flagged in the security sweep', status:'open'},
-    {id:'a5',  kind:'reminder', text:'Review outreach to 12 enterprise leads before send', status:'open', fireAt:iso(now+3*3600000)},
-    {id:'a6',  kind:'todo',     text:'Triage 23 newsletters into Read Later', status:'open'},
-    {id:'a7',  kind:'reminder', text:'Prep brief for Ken sync', status:'open', fireAt:iso(now+20*3600000)},
-    {id:'a8',  kind:'reminder', text:'Compile competitor pricing teardown', status:'open', fireAt:iso(now+7*3600000)},
-    {id:'a9',  kind:'todo',     text:'Deploy arcana-research.com hotfix', status:'done', doneAt:iso(now-3*3600000)},
-    {id:'a10', kind:'reminder', text:'Unsubscribe from 8 promotional senders', status:'done', doneAt:iso(now-5*3600000)},
+    {id:'a1',  kind:'todo',     text:'Mark the PR review done once CI passes', status:'open'},
+    {id:'a2',  kind:'reminder', text:'Check whether the deploy finished', status:'open', fireAt:iso(now+28*60000)},
+    {id:'a3',  kind:'reminder', text:'Re-run the flaky integration test', status:'fired', fireAt:iso(now-2*3600000), firedAt:iso(now-2*3600000)},
+    {id:'a4',  kind:'todo',     text:'Wake this thread after the build cache warms', status:'open'},
+    {id:'a5',  kind:'reminder', text:'Look at the migration output before merging', status:'open', fireAt:iso(now+3*3600000)},
+    {id:'a6',  kind:'todo',     text:'Prune expired reminders from the store', status:'open'},
+    {id:'a7',  kind:'reminder', text:'Recheck the rate-limited API call', status:'open', fireAt:iso(now+20*3600000)},
+    {id:'a8',  kind:'reminder', text:'Verify the nightly job wrote its artifact', status:'open', fireAt:iso(now+7*3600000)},
+    {id:'a9',  kind:'todo',     text:'Confirm the staging rollback worked', status:'done', doneAt:iso(now-3*3600000)},
+    {id:'a10', kind:'reminder', text:'Close the resolved tracking issue', status:'done', doneAt:iso(now-5*3600000)},
   ];
   var listeners = {};
   function emit(ev, data){ (listeners[ev]||[]).forEach(function(cb){ try{ cb(data); }catch(e){ console.warn(e); } }); }
