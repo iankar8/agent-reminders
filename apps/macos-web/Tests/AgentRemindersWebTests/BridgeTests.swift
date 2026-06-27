@@ -38,7 +38,7 @@ final class BridgeTests: XCTestCase {
     }
 
     func testAddReminderRoutesWithFireAt() throws {
-        bridge.handle(action: "addReminder", payload: ["text": "Call Ken", "fireAt": "1h"])
+        bridge.handle(action: "addReminder", payload: ["text": "Call the vendor", "fireAt": "1h"])
         let items = try store.list()
         XCTAssertEqual(items.count, 1)
         XCTAssertEqual(items.first?.kind, .reminder)
